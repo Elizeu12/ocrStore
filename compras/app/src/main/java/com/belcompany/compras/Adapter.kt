@@ -5,14 +5,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.belcompany.compras.data.Element
 
-class Adapter(private val dataSet: Array<String>):RecyclerView.Adapter<Adapter.ViewHolder>() {
+class Adapter(private val dataSet: ArrayList<Element>):RecyclerView.Adapter<Adapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val textView: TextView
+        val textPriceView: TextView
 
         init {
             textView = view.findViewById(R.id.text_item)
+            textPriceView = view.findViewById(R.id.text_value)
         }
     }
 
@@ -25,7 +28,8 @@ class Adapter(private val dataSet: Array<String>):RecyclerView.Adapter<Adapter.V
 
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
 
-        viewHolder.textView.text = dataSet[position]
+        viewHolder.textView.text = dataSet[position].title
+        viewHolder.textPriceView.text = dataSet[position].price.toString()
     }
 
     override fun getItemCount() = dataSet.size

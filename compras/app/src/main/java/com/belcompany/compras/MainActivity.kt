@@ -2,31 +2,33 @@ package com.belcompany.compras
 
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.widget.TextView
+import android.widget.Button
 import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContract
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.annotation.RequiresPermission
-import androidx.camera.core.CameraSelector
-import androidx.camera.core.Logger
-import androidx.camera.core.Preview
+import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.belcompany.compras.data.Element
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.Detector
 import com.google.android.gms.vision.text.TextBlock
 import com.google.android.gms.vision.text.TextRecognizer
-import java.util.jar.Manifest
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.util.*
+import kotlin.collections.ArrayList
+import kotlin.concurrent.schedule
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var arrayList: ArrayList<Element>
+    private var scan = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,12 +36,20 @@ class MainActivity : AppCompatActivity() {
 
         val recycler = findViewById<RecyclerView>(R.id.recycle_view)
 
+        arrayList = arrayListOf()
+
+        recycler.adapter = Adapter(arrayList)
+
 
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.setHasFixedSize(true)
 
+        findViewById<Button>(R.id.btn_scan).setOnClickListener {
+            scan = true
+        }
+
         if (allPermissionsGranted()) {
-            startCamera()
+                startCamera()
         } else {
             getPermission.launch(RequiresPermission)
         }
@@ -71,6 +81,7 @@ class MainActivity : AppCompatActivity() {
             object : Detector.Processor<TextBlock> {
                 override fun release() {}
 
+                @SuppressLint("HandlerLeak")
                 override fun receiveDetections(detections: Detector.Detections<TextBlock>) {
                     val items = detections.detectedItems
 
@@ -85,34 +96,81 @@ class MainActivity : AppCompatActivity() {
 //                            stringBuilder.append(item.value)
 //                            stringBuilder.append("\n")
 //                        }
-
-                    val stringBuilder = StringBuilder()
+                    if (scan) {
+                        val stringBuilder = StringBuilder()
                         for (i in 0 until items.size()) {
                             val item = items.valueAt(i)
                             stringBuilder.append(item.value)
-                            stringBuilder.append("\n")
-                    }
-                    data.element.forEach {
-                        arrayList.add(it)
-                    }
+                        }
 
-                    recycler.adapter = Adapter(arrayList)
+                        val recycler = findViewById<RecyclerView>(R.id.recycle_view)
 
-                    val texto = stringBuilder.toString()
+                        var textStringBuilder = stringBuilder.toString()
+
+                        val textPriceNotTreated = textStringBuilder.substring(
+                            textStringBuilder.indexOf("R$"),
+                            textStringBuilder.length
+                        )
+                        var textPrice = ""
+                        var count = false
+                        var valid = 0
+
+                        textPriceNotTreated.forEach {
+                            if (it.isDigit() && valid <= 1){
+                                textPrice += it
+                                if (count){
+                                    valid ++
+                                }
+                            }
+                            if (it == ','){
+                                textPrice += it
+                                count = true
+                            }
+                        }
+
+                        count = false
+                        valid = 0
+
+                        textStringBuilder = textStringBuilder.replaceRange(
+                            textStringBuilder.indexOf("R$"),
+                            textStringBuilder.length,
+                            ""
+                        )
+
+                        runOnUiThread {
+                            MaterialAlertDialogBuilder(this@MainActivity)
+                                .setTitle(resources.getString(R.string.text_confirm_item))
+                                .setMessage("item $textStringBuilder \n valor: R$$textPrice")
+                                .setNeutralButton(resources.getString(R.string.txt_btn_cancel)) { dialog, which ->
+
+                                }
+                                .setPositiveButton(resources.getString(R.string.text_confirm)) { dialog, which ->
+                                    var texto = Element(textStringBuilder, "R$$textPrice")
+
+                                    arrayList.add(texto)
+
+                                    recycler.adapter?.notifyDataSetChanged()
+                                }
+                                .show()
+                        }
+                        scan = false
+                    }
                 }
             })
 
-        val cameraContainer = findViewById<SurfaceView>(R.id.previewView)
+        val cameraContainer = findViewById<SurfaceView>(R.id.preview_view)
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+
             val preview = CameraSource.Builder(applicationContext, textRecognizer)
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
                 .setRequestedPreviewSize(1280, 1024)
                 .setAutoFocusEnabled(true)
                 .setRequestedFps(2.0f)
                 .build()
-            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
+
             cameraContainer.holder.addCallback(object : SurfaceHolder.Callback {
                 override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
                 }
@@ -143,6 +201,5 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "sem permissão para acessar a camera", Toast.LENGTH_LONG)
                     .show()
             }
-
         }
 }
