@@ -3,11 +3,15 @@ package com.belcompany.compras
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.os.Handler
+import android.text.InputType
 import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 import android.widget.Button
+import android.widget.EditText
+import android.widget.Spinner
+import android.widget.Spinner.MODE_DIALOG
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -22,13 +26,13 @@ import com.google.android.gms.vision.text.TextBlock
 import com.google.android.gms.vision.text.TextRecognizer
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.concurrent.schedule
+
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var arrayList: ArrayList<Element>
     private var scan = false
+    private var total = 0.0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -105,10 +109,18 @@ class MainActivity : AppCompatActivity() {
 
                         val recycler = findViewById<RecyclerView>(R.id.recycle_view)
 
-                        var textStringBuilder = stringBuilder.toString()
+                        var textStringBuilder = stringBuilder.toString().lowercase()
+
+                        var monetary = ""
+
+                        if (textStringBuilder.indexOf("r$") > 0){
+                            monetary = "r$"
+                        }else{
+                            monetary = "rs"
+                        }
 
                         val textPriceNotTreated = textStringBuilder.substring(
-                            textStringBuilder.indexOf("R$"),
+                            textStringBuilder.indexOf(monetary),
                             textStringBuilder.length
                         )
                         var textPrice = ""
@@ -122,7 +134,7 @@ class MainActivity : AppCompatActivity() {
                                     valid ++
                                 }
                             }
-                            if (it == ','){
+                            if (it == ',' || it == '.'){
                                 textPrice += it
                                 count = true
                             }
@@ -132,23 +144,36 @@ class MainActivity : AppCompatActivity() {
                         valid = 0
 
                         textStringBuilder = textStringBuilder.replaceRange(
-                            textStringBuilder.indexOf("R$"),
+                            textStringBuilder.indexOf(monetary),
                             textStringBuilder.length,
                             ""
                         )
 
                         runOnUiThread {
+
+                            val popupEditText = EditText(this@MainActivity)
+                            popupEditText.inputType = InputType.TYPE_CLASS_NUMBER
+                            popupEditText.setText("1")
                             MaterialAlertDialogBuilder(this@MainActivity)
                                 .setTitle(resources.getString(R.string.text_confirm_item))
                                 .setMessage("item $textStringBuilder \n valor: R$$textPrice")
+                                .setView(popupEditText)
                                 .setNeutralButton(resources.getString(R.string.txt_btn_cancel)) { dialog, which ->
 
                                 }
                                 .setPositiveButton(resources.getString(R.string.text_confirm)) { dialog, which ->
-                                    var texto = Element(textStringBuilder, "R$$textPrice")
+
+                                    var valuePrice = textPrice.replace(',', '.').toDouble()
+
+                                    var value = popupEditText.text.toString().toDouble() * valuePrice
+
+                                    var texto = Element(textStringBuilder, "R$$value")
+
+                                    total += value
 
                                     arrayList.add(texto)
 
+                                    findViewById<TextView>(R.id.txt_total).text = total.toString().replace('.', ',')
                                     recycler.adapter?.notifyDataSetChanged()
                                 }
                                 .show()
