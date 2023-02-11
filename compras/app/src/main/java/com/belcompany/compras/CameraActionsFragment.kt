@@ -11,7 +11,7 @@ import android.widget.Toast
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.ViewModelProvider
+import androidx.fragment.app.viewModels
 import com.belcompany.compras.data.Element
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.Detector
@@ -23,12 +23,9 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
 
     private var scan = false
     private var total = 0.0
-    private lateinit var model: ViewModelStore
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        model = ViewModelProvider(this)[ViewModelStore::class.java]
 
         view.findViewById<Button>(R.id.btn_scan).setOnClickListener {
             scan = true
@@ -110,7 +107,7 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
                             ""
                         )
 
-                            activity?.runOnUiThread {
+                        requireActivity().runOnUiThread {
 
                             val popupEditText = EditText(context)
                             popupEditText.inputType = InputType.TYPE_CLASS_NUMBER
@@ -119,9 +116,9 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
                                 .setTitle(resources.getString(R.string.text_confirm_item))
                                 .setMessage("item $textStringBuilder \n valor: R$$textPrice")
                                 .setView(popupEditText)
-                                .setNeutralButton(resources.getString(R.string.txt_btn_cancel)) { dialog, which ->
+                                .setNeutralButton(resources.getString(R.string.txt_btn_cancel)) { _, _ ->
                                 }
-                                .setPositiveButton(resources.getString(R.string.text_confirm)) { dialog, which ->
+                                .setPositiveButton(resources.getString(R.string.text_confirm)) { _, _ ->
 
                                     var valuePrice =
                                         textPrice.replace(',', '.').toDouble()
@@ -131,8 +128,11 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
 
                                     total += value
 
+
+                                    val model: ViewModelStore by viewModels()
+
                                     val element = Element(textStringBuilder, value)
-                                    model.setData(element)
+                                    model.updateData(element)
                                 }
                                 .show()
                         }
