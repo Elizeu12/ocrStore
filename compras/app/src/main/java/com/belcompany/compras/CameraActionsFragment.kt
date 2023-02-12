@@ -12,6 +12,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.ViewModelProvider
 import com.belcompany.compras.data.Element
 import com.google.android.gms.vision.CameraSource
 import com.google.android.gms.vision.Detector
@@ -23,6 +24,7 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
 
     private var scan = false
     private var total = 0.0
+    private lateinit var model: ViewModelStore
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -129,7 +131,7 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
                                     total += value
 
 
-                                    val model: ViewModelStore by viewModels()
+                                    model = ViewModelProvider(requireActivity())[ViewModelStore::class.java]
 
                                     val element = Element(textStringBuilder, value)
                                     model.updateData(element)

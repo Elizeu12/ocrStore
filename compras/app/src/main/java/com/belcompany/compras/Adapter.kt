@@ -29,7 +29,8 @@ class Adapter(private val dataSet: ArrayList<Element>):RecyclerView.Adapter<Adap
     override fun onBindViewHolder(viewHolder: ViewHolder, position: Int) {
 
         viewHolder.textView.text = dataSet[position].title
-        viewHolder.textPriceView.text = dataSet[position].price.toString()
+        val price = dataSet[position].price.toString().replace('.', ',')
+        viewHolder.textPriceView.text =price
     }
 
     override fun getItemCount() = dataSet.size
