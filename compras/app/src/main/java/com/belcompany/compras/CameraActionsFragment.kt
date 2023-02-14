@@ -11,6 +11,7 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
 import androidx.camera.core.Camera
+import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -25,10 +26,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
 
     private var scan = false
-    private var focus = false
     private lateinit var model: ViewModelStore
     private val regexMoneyNoSignal = Regex("\\d{1,3}(\\.\\d{3})*(,\\d{2})?")
     private val regexMoneySignalReal = Regex("\\d{1,3}(\\.\\d{3})*(.\\d{2})?")
+    private lateinit var preview: CameraSource
 
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -37,9 +38,6 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
 
         view.findViewById<Button>(R.id.btn_scan).setOnClickListener {
             scan = true
-        }
-        view.findViewById<Button>(R.id.btn_focus).setOnClickListener {
-            focus = true
         }
 
         val textRecognizer = TextRecognizer.Builder(context).build()
@@ -124,7 +122,7 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            val preview = CameraSource.Builder(requireContext(), textRecognizer)
+            preview = CameraSource.Builder(requireContext(), textRecognizer)
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
                 .setRequestedPreviewSize(1280, 1024)
                 .setAutoFocusEnabled(true)
