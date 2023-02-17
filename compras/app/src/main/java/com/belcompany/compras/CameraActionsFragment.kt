@@ -1,17 +1,13 @@
 package com.belcompany.compras
 
 import android.annotation.SuppressLint
-import android.hardware.Camera.open
 import android.os.Bundle
-import android.system.Os.open
 import android.text.InputType
 import android.util.Log
 import android.view.*
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
-import androidx.camera.core.Camera
-import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -74,17 +70,39 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
                         var textStringBuilder = stringBuilder.toString().uppercase()
                         var textPrice = 0.00
 
-                        val getprice = textStringBuilder.replace(" ", "")
+                        var getprice = textStringBuilder.replace(" ", "")
 
-                        var matches = regexMoneyNoSignal.find(getprice)?.value
-
-                        if (matches == null){
-                            matches = regexMoneySignalReal.find(getprice)?.value
+                        getprice = (if (getprice.indexOf("R$") >= 0) {
+                            getprice.substring(getprice.indexOf("R$"), getprice.length)
+                        } else {
+                            getprice
+                        })
+                        var price = ""
+                            when {
+                            getprice.indexOf('.') >= 0 -> {
+                                regexMoneySignalReal.findAll(getprice).forEach { valor ->
+                                    if (valor.value.indexOf(".") >= 0) {
+                                        price = valor.value
+                                    }
+                                }
+                            }
+                            getprice.indexOf(",") >= 0 -> {
+                                regexMoneyNoSignal.findAll(getprice).forEach { valor ->
+                                    if (valor.value.indexOf(',') >= 0) {
+                                        price = valor.value
+                                    }
+                                }
+                            }
+                            else -> price = "0.0"
                         }
 
-                        val price = matches?.replace(',', '.')
+                        price = price.replace(",", ".")
+
                         if (price != null) {
                             textPrice = price.toDouble()
+                        }
+                        else{
+                            textPrice = 0.0
                         }
 
                         requireActivity().runOnUiThread {
@@ -119,36 +137,38 @@ class CameraActionsFragment : Fragment(R.layout.camera_actions_fragment) {
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
 
-        cameraProviderFuture.addListener({
-            val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
+        cameraProviderFuture.addListener(
+            {
+                val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
-            preview = CameraSource.Builder(requireContext(), textRecognizer)
-                .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1280, 1024)
-                .setAutoFocusEnabled(true)
-                .setRequestedFps(3.0f)
-                .build()
+                preview = CameraSource.Builder(requireContext(), textRecognizer)
+                    .setFacing(CameraSource.CAMERA_FACING_BACK)
+                    .setRequestedPreviewSize(1280, 1024)
+                    .setAutoFocusEnabled(true)
+                    .setRequestedFps(3.0f)
+                    .build()
 
-            cameraContainer.holder.addCallback(object : SurfaceHolder.Callback {
-                override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
-                }
-
-                override fun surfaceDestroyed(p0: SurfaceHolder) {
-                    preview.stop()
-                }
-
-                @SuppressLint("MissingPermission")
-                override fun surfaceCreated(p0: SurfaceHolder) {
-                    try {
-                        cameraProvider.unbindAll()
-                        preview.start(cameraContainer.holder)
-
-                    } catch (e: Exception) {
-                        Log.e("logCamera", "Failure initialize camera", e)
+                cameraContainer.holder.addCallback(object : SurfaceHolder.Callback {
+                    override fun surfaceChanged(p0: SurfaceHolder, p1: Int, p2: Int, p3: Int) {
                     }
-                }
-            })
-        }, ContextCompat.getMainExecutor(requireContext()))
+
+                    override fun surfaceDestroyed(p0: SurfaceHolder) {
+                        preview.stop()
+                    }
+
+                    @SuppressLint("MissingPermission")
+                    override fun surfaceCreated(p0: SurfaceHolder) {
+                        try {
+                            cameraProvider.unbindAll()
+                            preview.start(cameraContainer.holder)
+
+                        } catch (e: Exception) {
+                            Log.e("logCamera", "Failure initialize camera", e)
+                        }
+                    }
+                })
+            }, ContextCompat.getMainExecutor(requireContext())
+        )
         Toast.makeText(context, "Camera abriu xablau", Toast.LENGTH_LONG).show()
     }
 
